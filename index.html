@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#141a22">
+<meta name="description" content="Jeu d’enquête dans la maquette 3D de l’îlot F du camp de Rivesaltes, pour préparer et prolonger la sortie au Mémorial (3e).">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Huella">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="preload" href="./fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./css/app.css">
+<title>Huella — Rivesaltes, les traces du silence</title>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body data-page="enquete" data-mode="walk" class="welcoming">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4" r="2"/><path d="M15 21l-3-6-2 1v5M8 11l3-3 3 2 2 3M11 8l-2 6"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4 18-7z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
+</svg>
+
+<canvas id="view" aria-label="Maquette 3D de l’îlot F du camp de Rivesaltes" tabindex="0"></canvas>
+<div id="vignette" aria-hidden="true"></div>
+<div id="pins" aria-label="Repères de l’enquête dans la maquette"></div>
+<div id="stick" aria-hidden="true"><div class="knob"></div></div>
+
+<header id="top">
+  <div class="brand"><span class="eyebrow" id="brand-ep">Épisode 1 · Avant la visite</span><strong>Huella</strong></div>
+  <nav id="tabs" aria-label="Sections">
+    <button data-tab="enquete" aria-current="page"><svg><use href="#i-search"/></svg><span>Enquête</span></button>
+    <button data-tab="dossier"><svg><use href="#i-folder"/></svg><span>Dossier</span><span class="count" id="piece-count">0/7</span></button>
+  </nav>
+  <button class="icon-btn" id="about-btn" aria-label="À propos de la maquette et des sources"><svg><use href="#i-info"/></svg></button>
+</header>
+
+<div id="hud">
+  <button id="era-btn" class="chip glass" aria-haspopup="dialog"><span class="era-dot"></span><span id="era-label">1941–1942</span><svg><use href="#i-down"/></svg></button>
+  <div id="hud-right">
+    <button id="minimap-btn" class="glass" aria-label="Ouvrir le plan"><canvas id="minimap" width="300" height="160"></canvas></button>
+    <button id="mode-btn" class="icon-btn glass" aria-label="Vue aérienne"><svg><use href="#i-plane"/></svg></button>
+  </div>
+  <div id="era-banner" class="glass" role="status" hidden><span class="eyebrow" id="eb-date"></span><strong id="eb-title"></strong><p id="eb-text"></p></div>
+  <div id="aerial-hint" class="glass" hidden>Touche le sol pour y descendre</div>
+</div>
+
+<!-- Mission en cours -->
+<section id="mission" class="glass" aria-labelledby="m-title" data-open="true">
+  <div class="m-head">
+    <button class="icon-btn small" id="m-prev" aria-label="Mission précédente"><svg><use href="#i-left"/></svg></button>
+    <button class="m-toggle" id="m-toggle" aria-expanded="true" aria-controls="m-body">
+      <span class="m-num" id="m-num">1</span>
+      <span class="m-words"><span class="eyebrow" id="m-count">Mission 1</span><strong id="m-title"></strong></span>
+      <svg class="chev"><use href="#i-down"/></svg>
+    </button>
+    <button class="icon-btn small" id="m-next" aria-label="Mission suivante"><svg><use href="#i-right"/></svg></button>
+  </div>
+  <div class="m-body" id="m-body"></div>
+</section>
+
+<!-- Dossier -->
+<main id="dossier" class="page" hidden tabindex="-1"><div class="page-inner" id="dossier-inner"></div></main>
+
+<!-- Feuilles -->
+<div id="sheet-backdrop" hidden></div>
+<section id="era-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="era-sheet-title" hidden>
+  <div class="sheet-head"><h2 id="era-sheet-title">Voyager dans le temps</h2><button class="icon-btn small" data-close aria-label="Fermer"><svg><use href="#i-close"/></svg></button></div>
+  <p class="sheet-intro">Les baraques restent celles du plan de 1939. La lumière, l’état des bâtiments et ce qui les entoure changent selon la période.</p>
+  <div id="era-list"></div>
+</section>
+<section id="map-sheet" class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="map-sheet-title" hidden>
+  <div class="sheet-head"><h2 id="map-sheet-title">Plan de l’îlot F</h2><button class="icon-btn small" data-close aria-label="Fermer"><svg><use href="#i-close"/></svg></button></div>
+  <canvas id="bigmap" aria-label="Plan de l’îlot F. Touche un endroit libre pour t’y rendre."></canvas>
+  <div class="legend" id="map-legend"></div>
+  <p class="sheet-intro small">Touche un endroit libre pour t’y rendre.</p>
+</section>
+<section id="art-sheet" class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="art-title" hidden>
+  <div class="sheet-head"><h2 id="art-title"></h2><button class="icon-btn small" data-close aria-label="Fermer"><svg><use href="#i-close"/></svg></button></div>
+  <div class="art-paper"><img id="art-img" alt=""></div>
+  <p class="sheet-intro small" id="art-credit"></p>
+</section>
+<section id="about-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
+  <div class="sheet-head"><h2 id="about-title">À propos</h2><button class="icon-btn small" data-close aria-label="Fermer"><svg><use href="#i-close"/></svg></button></div>
+  <div class="about">
+    <h3>Ce qui vient des sources</h3>
+    <p>L’implantation des 60 baraques de l’îlot F est relevée sur le plan de 1939 publié par le Mémorial du camp de Rivesaltes. Les dates et les chiffres viennent de la chronologie du Mémorial.</p>
+    <h3>Ce qui est une restitution</h3>
+    <ul>
+      <li>Les dimensions exactes, les matériaux, les fenêtres et les portes des baraques.</li>
+      <li>L’intérieur meublé de la baraque témoin : on ne connaît pas l’aménagement de cette baraque précise.</li>
+      <li>La clôture, les allées, l’emplacement des tentes de 1962.</li>
+      <li>Le Mémorial, représenté par un volume simplifié.</li>
+      <li>Le paysage : montagnes et mer sont évoquées, distances non respectées.</li>
+    </ul>
+    <p>Aucune personne n’est représentée dans la maquette. Les documents cités dans les missions (note, rapport, lettre) sont des consignes de jeu ; les pièces du dossier, elles, reprennent des faits établis.</p>
+    <h3>Tes données</h3>
+    <p>Tes réponses restent sur cet appareil. Rien n’est envoyé : c’est toi qui remets ton PDF à ton professeur.</p>
+    <h3>Sources</h3>
+    <ul class="sources" id="sources"></ul>
+    <button class="link" id="help-btn">Revoir la visite guidée</button>
+  </div>
+</section>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="era-veil" aria-hidden="true"><span id="veil-date"></span><strong id="veil-title"></strong></div>
+<div id="stamp" aria-hidden="true"><span class="eyebrow">Pièce retrouvée</span><strong id="stamp-title"></strong></div>
+
+<div id="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tour-title">
+  <div id="tour-spot"></div>
+  <div id="tour-card" class="glass">
+    <span class="eyebrow" id="tour-count">1 / 6</span>
+    <h2 id="tour-title"></h2>
+    <p id="tour-text"></p>
+    <div class="tour-actions"><button class="link" id="tour-skip">Passer la visite</button><button class="primary" id="tour-next"><span>Suivant</span><svg><use href="#i-go"/></svg></button></div>
+  </div>
+</div>
+
+<div id="loading" hidden role="dialog" aria-modal="true" aria-labelledby="loading-title">
+  <div class="loading-card glass">
+    <span class="eyebrow">Un instant</span>
+    <h2 id="loading-title">La maquette du camp se construit</h2>
+    <p>Ton appareil dessine le terrain, les 60 baraques de l’îlot F et la lumière. Sur un ordinateur ou un téléphone ancien, cela peut prendre jusqu’à une minute.</p>
+    <p><b>Ne ferme pas la page :</b> l’enquête démarre toute seule dès que tout est prêt.</p>
+    <div class="load-bar"><span id="loading-bar"></span></div>
+    <p class="loading-text" id="loading-text" role="status">Chargement…</p>
+  </div>
+</div>
+
+<div id="help" hidden>
+  <div class="help-card glass">
+    <h2>Se déplacer</h2>
+    <div class="help-grid touch-only">
+      <div><div class="help-ill joy"></div><p><strong>Glisse le pouce à gauche</strong> pour marcher.</p></div>
+      <div><div class="help-ill look"></div><p><strong>Glisse à droite</strong> pour regarder autour de toi.</p></div>
+      <div><div class="help-ill tap"></div><p><strong>Touche le sol</strong> pour y aller.</p></div>
+    </div>
+    <div class="help-grid mouse-only">
+      <div><div class="keys"><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd></div><p><strong>Marcher</strong> (ou les flèches). Maj pour aller plus vite.</p></div>
+      <div><div class="help-ill look"></div><p><strong>Glisse la souris</strong> pour regarder.</p></div>
+      <div><div class="help-ill tap"></div><p><strong>Clique au sol</strong> pour y aller.</p></div>
+    </div>
+    <p class="help-more">Le bouton de <strong>période</strong>, en haut à gauche, te fait voyager dans le temps. Le <strong>plan</strong>, en haut à droite, t’aide à te repérer.</p>
+    <button class="primary" id="help-ok"><span>Commencer l’enquête</span></button>
+  </div>
+</div>
+
+<!-- Accueil -->
+<div id="welcome">
+  <div class="welcome-inner">
+    <div class="w-text">
+      <span class="pill"><b>3e</b> Mémorial du camp de Rivesaltes · Histoire &amp; espagnol</span>
+      <h1>Huella<span class="grad">.</span></h1>
+      <p class="w-def"><i lang="es">huella</i> <span>(n. f., espagnol)</span> : la trace, l’empreinte. <b>Rivesaltes, les traces du silence.</b></p>
+      <p class="lede">Un dossier d’archives incomplet. Une maquette du camp à explorer à travers le temps. Deux dessins de Josep Bartolí. À toi de reconstituer l’histoire de l’îlot F.</p>
+      <div class="load"><div class="load-bar"><span id="load-bar"></span></div><span id="load-text">Chargement de la maquette…</span></div>
+
+      <div id="w-choose">
+        <div class="ep-cards">
+          <button class="ep-card" data-ep="ep1" disabled>
+            <span class="ep-num">1</span>
+            <span class="ep-words"><span class="eyebrow">Avant la visite · 30 min</span><strong>Le dossier oublié</strong><span class="ep-meta" id="ep1-meta">7 pièces à retrouver dans la maquette</span></span>
+            <svg><use href="#i-go"/></svg>
+          </button>
+          <button class="ep-card" data-ep="ep2" disabled>
+            <span class="ep-num">2</span>
+            <span class="ep-words"><span class="eyebrow">Après la visite · 35 min</span><strong>Ce que les traces racontent</strong><span class="ep-meta" id="ep2-meta">Avec ton carnet de l’épisode 1</span></span>
+            <svg><use href="#i-go"/></svg>
+          </button>
+        </div>
+        <button class="link" id="w-import"><svg><use href="#i-upload"/></svg> J’ai changé d’appareil : retrouver mon travail</button>
+        <p class="w-msg" id="w-msg" role="status"></p>
+        <ul class="w-checks">
+          <li><svg><use href="#i-check"/></svg>Aucun compte</li>
+          <li><svg><use href="#i-check"/></svg>Tes réponses restent chez toi</li>
+          <li><svg><use href="#i-check"/></svg>Rien n’est envoyé sans toi</li>
+        </ul>
+      </div>
+
+      <form id="w-id" hidden>
+        <span class="eyebrow">Carte de stagiaire · archives du Mémorial</span>
+        <h2>Qui mène l’enquête ?</h2>
+        <p class="w-note">Ton nom sert seulement à nommer ton carnet. Il reste sur cet appareil.</p>
+        <div class="id-grid">
+          <label>Prénom<input id="id-prenom" autocomplete="given-name" maxlength="80" required></label>
+          <label>Nom<input id="id-nom" autocomplete="family-name" maxlength="80" required></label>
+          <label>Classe<input id="id-classe" autocomplete="off" maxlength="80" placeholder="3e…"></label>
+        </div>
+        <button class="primary big" type="submit"><span>Entrer dans l’îlot F</span><svg><use href="#i-go"/></svg></button>
+        <button class="link" type="button" id="w-back">← Retour</button>
+      </form>
+    </div>
+
+    <figure class="w-art" aria-hidden="true">
+      <div class="w-frame">
+        <div class="w-bar"><i></i><i></i><i></i><span>archive · josep bartolí · 1939</span></div>
+        <img src="./images/bartoli-barbeles.png" alt="">
+      </div>
+      <div class="w-float f1"><span class="eyebrow">Pièce retrouvée</span><strong>Les tentes · 1962</strong><span class="meter-mini"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+      <div class="w-float f2"><span class="dot"></span><span><b>Voyage dans le temps</b><small>1939 → aujourd’hui</small></span></div>
+      <div class="w-float f3"><span class="eyebrow">Mi léxico</span><strong lang="es">la alambrada</strong><small>les barbelés</small></div>
+    </figure>
+  </div>
+</div>
+<input type="file" id="pdf-input" accept=".pdf,application/pdf" hidden>
+
+<noscript><p style="padding:2rem;color:#fff">Cette enquête a besoin de JavaScript.</p></noscript>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
